@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Minus, Plus, Share2, Truck, ShieldCheck, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getProduct, getCollection, products } from "@/data/products";
+import { useCollections, useProduct, maxQtyFor } from "@/lib/catalog";
 import { useCart } from "@/contexts/CartContext";
 import { SITE, whatsappLink } from "@/lib/site";
 import { discountPercent, formatPrice } from "@/lib/format";
@@ -20,7 +20,8 @@ import NotFound from "./NotFound";
 
 const ProductPage = () => {
   const { id } = useParams();
-  const product = getProduct(id);
+  const { product, products, loading } = useProduct(id);
+  const collections = useCollections();
   const navigate = useNavigate();
   const { addItem, setCartOpen } = useCart();
 
@@ -29,46 +30,94 @@ const ProductPage = () => {
   const [color, setColor] = useState("");
   const [qty, setQty] = useState(1);
 
+  const variants = product?.variants ?? [];
+  const sizes = product?.sizes ?? [];
+  const colors = product?.colors ?? [];
+
+  // a single size / colour needs no choosing
+  const effSize = sizes.length === 1 ? sizes[0] : size;
+  const effColor = colors.length === 0 ? "" : colors.length === 1 ? colors[0].name : color;
+  const selected = variants.find((v) => v.size === effSize && v.color === effColor);
+  const maxQty = selected ? Math.max(1, maxQtyFor(selected)) : 10;
+
   // reset selections when navigating between products
   useEffect(() => {
     setActiveImage(0);
     setQty(1);
-    setSize(product?.sizes.length === 1 ? product.sizes[0] : "");
-    setColor(product?.colors.length === 1 ? product.colors[0].name : "");
+    setSize("");
+    setColor("");
   }, [product?.id]);
 
+  // never allow more than what is in stock
+  useEffect(() => {
+    setQty((q) => Math.min(q, maxQty));
+  }, [maxQty]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-6xl animate-pulse px-4 py-10 lg:px-8" aria-busy="true">
+        <div className="grid gap-10 md:grid-cols-2">
+          <div className="aspect-square rounded-sm bg-muted" />
+          <div className="space-y-4">
+            <div className="h-9 w-3/4 rounded bg-muted" />
+            <div className="h-6 w-1/4 rounded bg-muted" />
+            <div className="h-24 rounded bg-muted" />
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!product) return <NotFound />;
 
-  const collection = getCollection(product.category);
-  const off = discountPercent(product.price, product.originalPrice);
-  const needSize = product.sizes.length > 1;
-  const needColor = product.colors.length > 1;
+  const collection = collections.find((c) => c.slug === product.category);
+  const needSize = sizes.length > 1;
+  const needColor = colors.length > 1;
+  const displayPrice = selected?.price ?? product.price;
+  const fromLabel = !selected && variants.some((v) => v.price !== product.price);
+  const off = discountPercent(displayPrice, product.originalPrice);
+  const canBuy = product.inStock && (!selected || selected.available);
+
+  const sizeAvailable = (s: string) =>
+    variants.some((v) => v.size === s && v.available && (!effColor || v.color === effColor));
+  const colorAvailable = (c: string) =>
+    variants.some((v) => v.color === c && v.available && (!effSize || v.size === effSize));
 
   const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
   const validate = () => {
-    if (needSize && !size) {
+    if (needSize && !effSize) {
       toast.error("Please choose a size");
       return false;
     }
-    if (needColor && !color) {
+    if (needColor && !effColor) {
       toast.error("Please choose a colour");
+      return false;
+    }
+    if (!selected) {
+      toast.error("That combination isn't available — please pick another");
+      return false;
+    }
+    if (!selected.available) {
+      toast.error("Sorry, that option is sold out");
       return false;
     }
     return true;
   };
 
   const add = () =>
+    selected &&
     addItem(
       {
+        variantId: selected.id,
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: selected.price,
         image: product.images[0],
-        size: size || product.sizes[0] || "",
-        color: color || "",
+        size: selected.size,
+        color: selected.color,
+        maxQty: maxQtyFor(selected),
       },
       qty
     );
@@ -99,9 +148,9 @@ const ProductPage = () => {
     }
   };
 
-  const waMessage = `Hi ${SITE.name}! I'd like to order:\n\n${product.name} × ${qty}\nPrice: ${formatPrice(
-    product.price * qty
-  )}\n${window.location.href}`;
+  const waMessage = `Hi ${SITE.name}! I'd like to order:\n\n${product.name} × ${qty}\n${
+    selected ? `Option: ${[selected.color, selected.size].filter((v) => v && v !== "One Size").join(" / ") || "Standard"}\n` : ""
+  }Price: ${formatPrice(displayPrice * qty)}\n${window.location.href}`;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 lg:px-8">
@@ -179,8 +228,11 @@ const ProductPage = () => {
           </div>
 
           <div className="mt-3 flex items-center gap-3">
-            <span className="text-2xl font-medium">{formatPrice(product.price)}</span>
-            {product.originalPrice && product.originalPrice > product.price && (
+            <span className="text-2xl font-medium">
+              {fromLabel && <span className="mr-1 text-base font-normal text-muted-foreground">From</span>}
+              {formatPrice(displayPrice)}
+            </span>
+            {product.originalPrice && product.originalPrice > displayPrice && (
               <>
                 <span className="text-muted-foreground line-through">
                   {formatPrice(product.originalPrice)}
@@ -193,10 +245,16 @@ const ProductPage = () => {
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Inclusive of all taxes ·{" "}
-            {product.inStock ? (
-              <span className="text-green-700">Available</span>
-            ) : (
+            {!product.inStock ? (
               <span className="text-destructive">Currently sold out</span>
+            ) : selected && !selected.available ? (
+              <span className="text-destructive">This option is sold out</span>
+            ) : selected && !selected.madeToOrder && selected.stock <= 3 ? (
+              <span className="text-amber-700">Only {selected.stock} left</span>
+            ) : selected?.madeToOrder ? (
+              <span className="text-green-700">Available · made to order</span>
+            ) : (
+              <span className="text-green-700">Available</span>
             )}
           </p>
 
@@ -205,20 +263,28 @@ const ProductPage = () => {
           {/* Variants */}
           {needSize && (
             <div className="mt-6">
-              <p className="mb-2 text-sm font-medium">Size</p>
+              <p className="mb-2 text-sm font-medium">Size{size && `: ${size}`}</p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSize(s)}
-                    className={cn(
-                      "min-w-12 rounded-sm border px-3 py-2 text-sm",
-                      size === s ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"
-                    )}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {sizes.map((sz) => {
+                  const ok = sizeAvailable(sz);
+                  return (
+                    <button
+                      key={sz}
+                      onClick={() => setSize(sz)}
+                      disabled={!ok}
+                      aria-pressed={size === sz}
+                      className={cn(
+                        "min-w-12 rounded-sm border px-3 py-2 text-sm",
+                        size === sz
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:bg-muted",
+                        !ok && "cursor-not-allowed text-muted-foreground line-through opacity-50 hover:bg-transparent"
+                      )}
+                    >
+                      {sz}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -226,25 +292,31 @@ const ProductPage = () => {
             <div className="mt-6">
               <p className="mb-2 text-sm font-medium">Colour{color && `: ${color}`}</p>
               <div className="flex flex-wrap gap-2">
-                {product.colors.map((c) => (
-                  <button
-                    key={c.name}
-                    onClick={() => setColor(c.name)}
-                    aria-label={c.name}
-                    title={c.name}
-                    style={{ backgroundColor: c.hex }}
-                    className={cn(
-                      "h-9 w-9 rounded-full border-2",
-                      color === c.name ? "border-primary ring-2 ring-primary/30" : "border-border"
-                    )}
-                  />
-                ))}
+                {colors.map((c) => {
+                  const ok = colorAvailable(c.name);
+                  return (
+                    <button
+                      key={c.name}
+                      onClick={() => setColor(c.name)}
+                      disabled={!ok}
+                      aria-label={c.name + (ok ? "" : " (sold out)")}
+                      aria-pressed={color === c.name}
+                      title={c.name + (ok ? "" : " — sold out")}
+                      style={{ backgroundColor: c.hex || "#ddd" }}
+                      className={cn(
+                        "h-9 w-9 rounded-full border-2",
+                        color === c.name ? "border-primary ring-2 ring-primary/30" : "border-border",
+                        !ok && "cursor-not-allowed opacity-30"
+                      )}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Quantity + CTAs */}
-          {product.inStock ? (
+          {canBuy ? (
             <>
               <div className="mt-6 flex items-center gap-4">
                 <div className="flex items-center rounded-sm border border-border">
@@ -257,7 +329,7 @@ const ProductPage = () => {
                   </button>
                   <span className="w-10 text-center text-sm">{qty}</span>
                   <button
-                    onClick={() => setQty((q) => Math.min(10, q + 1))}
+                    onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
                     aria-label="Increase quantity"
                     className="p-3 hover:bg-muted"
                   >
@@ -265,7 +337,7 @@ const ProductPage = () => {
                   </button>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  Total {formatPrice(product.price * qty)}
+                  Total {formatPrice(displayPrice * qty)}
                 </span>
               </div>
 
@@ -289,7 +361,9 @@ const ProductPage = () => {
           ) : (
             <div className="mt-6 space-y-3">
               <p className="text-sm text-muted-foreground">
-                This piece is sold out, but we can make another just for you.
+                {product.inStock
+                  ? "That option is sold out — pick another above, or we can make one just for you."
+                  : "This piece is sold out, but we can make another just for you."}
               </p>
               <Button size="lg" asChild>
                 <Link to="/customize-order">Request a custom piece</Link>

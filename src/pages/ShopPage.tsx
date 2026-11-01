@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, X } from "lucide-react";
-import { collections, products } from "@/data/products";
+import { useCollections, useProducts } from "@/lib/catalog";
 import ProductCard from "@/components/ProductCard";
 import Seo from "@/components/Seo";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ const SORTS = [
 
 const ShopPage = () => {
   const [params, setParams] = useSearchParams();
+  const collections = useCollections();
+  const { products, loading } = useProducts();
   const q = params.get("q") ?? "";
   const cat = params.get("cat") ?? "all";
   const sort = params.get("sort") ?? "featured";
@@ -46,7 +48,7 @@ const ShopPage = () => {
         (a, b) => Number(!!b.isBestseller) - Number(!!a.isBestseller)
       );
     return list;
-  }, [q, cat, sort]);
+  }, [q, cat, sort, products]);
 
   const count = (slug: string) => products.filter((p) => p.category === slug).length;
 
@@ -130,7 +132,17 @@ const ShopPage = () => {
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4" aria-busy="true">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="mb-3 aspect-[3/4] rounded-sm bg-muted" />
+              <div className="mb-2 h-3 w-3/4 rounded bg-muted" />
+              <div className="h-3 w-1/3 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      ) : visible.length === 0 ? (
         <div className="py-20 text-center">
           <p className="font-display text-2xl mb-2">Nothing here yet</p>
           <p className="mb-6 text-sm text-muted-foreground">

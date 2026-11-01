@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { products } from "@/data/products";
+import { useProducts } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
@@ -15,6 +15,7 @@ type Props = { open: boolean; onOpenChange: (open: boolean) => void };
 const SearchDialog = ({ open, onOpenChange }: Props) => {
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const { products } = useProducts();
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -24,7 +25,7 @@ const SearchDialog = ({ open, onOpenChange }: Props) => {
         `${p.name} ${p.category} ${p.shortDescription}`.toLowerCase().includes(term)
       )
       .slice(0, 6);
-  }, [q]);
+  }, [q, products]);
 
   const close = () => {
     onOpenChange(false);

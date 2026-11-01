@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Briefcase, Hand, Truck, MessageCircle, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { collections } from "@/data/products";
+import { useCollections } from "@/lib/catalog";
 import { SITE } from "@/lib/site";
 import { formatPrice, withBase } from "@/lib/format";
 import ProductSection from "@/components/ProductSection";
@@ -21,7 +21,9 @@ const TRUST = [
   { icon: MessageCircle, title: "Order on WhatsApp", text: "We reply within hours" },
 ];
 
-const HomePage = () => (
+const HomePage = () => {
+  const collections = useCollections();
+  return (
   <div>
     <Seo />
 
@@ -206,6 +208,7 @@ const HomePage = () => (
 
     <Newsletter />
   </div>
-);
+  );
+};
 
 export default HomePage;

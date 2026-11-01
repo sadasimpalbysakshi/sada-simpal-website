@@ -2,7 +2,7 @@ import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { CartItem } from "@/contexts/CartContext";
 import { SITE, whatsappLink } from "@/lib/site";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, imageUrl } from "@/lib/format";
 
 export const INDIAN_STATES = [
   "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat",
@@ -53,33 +53,88 @@ export const normalisePhone = (raw: string) => {
   return digits.slice(-10);
 };
 
-export const saveOrder = async (order: Omit<PlacedOrder, "savedToDatabase">) => {
-  const { form } = order;
-  const { error } = await supabase.from("orders").insert({
-    order_number: order.orderNumber,
-    customer_name: form.name,
-    phone: normalisePhone(form.phone),
-    email: form.email || null,
-    address_line1: form.address1,
-    address_line2: form.address2 || null,
-    city: form.city,
-    state: form.state,
-    pincode: form.pincode,
-    notes: form.notes || null,
-    payment_method: form.payment,
-    items: order.items.map((i) => ({
-      id: i.id,
-      name: i.name,
-      price: i.price,
-      quantity: i.quantity,
-      size: i.size,
-      color: i.color,
-    })),
-    subtotal: order.subtotal,
-    shipping: order.shipping,
-    total: order.total,
+export type OrderFailure = {
+  kind: "stock" | "unavailable" | "other";
+  message: string;
+};
+
+/** Places the order on the server. The server re-reads the real prices, checks
+ *  stock, adds shipping and returns the final amounts — the browser never decides the total. */
+export const placeOrder = async (
+  form: CheckoutForm,
+  items: CartItem[]
+): Promise<{ order: PlacedOrder } | { failure: OrderFailure }> => {
+  const { data, error } = await supabase.rpc("place_order", {
+    p_customer: {
+      name: form.name,
+      phone: normalisePhone(form.phone),
+      email: form.email || "",
+      address1: form.address1,
+      address2: form.address2 || "",
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      notes: form.notes || "",
+      payment: form.payment,
+    },
+    p_items: items.map((i) => ({ variant_id: i.variantId, quantity: i.quantity })),
   });
-  return { error };
+
+  if (error || !data) {
+    const msg = error?.message ?? "";
+    const stock = msg.match(/OUT_OF_STOCK:(.+?):(\d+)/);
+    if (stock) {
+      const left = Number(stock[2]);
+      return {
+        failure: {
+          kind: "stock",
+          message:
+            left > 0
+              ? `Sorry — only ${left} of “${stock[1]}” left. We've updated your bag.`
+              : `Sorry — “${stock[1]}” just sold out. We've updated your bag.`,
+        },
+      };
+    }
+    const gone = msg.match(/UNAVAILABLE:(.+)/);
+    if (gone) {
+      return {
+        failure: {
+          kind: "unavailable",
+          message: `“${gone[1]}” is no longer available. We've updated your bag.`,
+        },
+      };
+    }
+    console.error("place_order failed", error);
+    return { failure: { kind: "other", message: msg } };
+  }
+
+  const r = data as {
+    order_number: string;
+    subtotal: number;
+    shipping: number;
+    total: number;
+    items: any[];
+  };
+  return {
+    order: {
+      orderNumber: r.order_number,
+      form,
+      items: r.items.map((l) => ({
+        variantId: l.variant_id,
+        id: l.id,
+        name: l.name,
+        price: Number(l.price),
+        quantity: Number(l.quantity),
+        size: l.size,
+        color: l.color,
+        image: l.image ? imageUrl(l.image) : "",
+      })),
+      subtotal: Number(r.subtotal),
+      shipping: Number(r.shipping),
+      total: Number(r.total),
+      savedToDatabase: true,
+    },
+  };
 };
 
 export const orderWhatsappMessage = (o: PlacedOrder) => {

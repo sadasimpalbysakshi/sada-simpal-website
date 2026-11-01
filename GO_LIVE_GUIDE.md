@@ -145,3 +145,53 @@ yourself and confirm it shows as paid in both Razorpay and your admin panel.
 | 8+ | Checklist, public launch, promotion |
 
 You can go public after Step 3 using **COD + UPI via WhatsApp** — online payments can follow when Razorpay approves you.
+
+---
+
+## Step 4 — Products in the database + admin panel (Sakshi's page)
+
+After this step the website reads products from Supabase, checkout totals are
+calculated by the database (nobody can change a price in their browser), and
+you and Sakshi manage everything at **https://sadasimpalbysakshi.in/admin**.
+
+### 4a. Run the two SQL files (Supabase → SQL Editor → New query)
+1. Paste `supabase/schema_v2.sql` → **Run**. (Safe to run twice.)
+2. Paste `supabase/seed_products.sql` → **Run**. This loads your 13 current
+   products and 7 categories. They start as "made to order" (always
+   available) — change to real stock counts in the admin when you like.
+
+### 4b. Turn OFF public sign-ups (important)
+Supabase → **Authentication → Sign In / Providers → Email** (or "User Signups")
+→ switch **"Allow new users to sign up" OFF** → Save.
+Only people you create yourself can log in.
+
+### 4c. Create the two admin logins
+Supabase → **Authentication → Users → Add user → Create new user**
+- Your email + a strong password (tick "Auto Confirm User")
+- Sakshi's email + a strong password (tick "Auto Confirm User")
+
+Then SQL Editor → run (use the two emails you just created):
+```sql
+insert into public.admins (user_id, email)
+select id, email from auth.users
+where email in ('YOUR-EMAIL-HERE', 'SAKSHI-EMAIL-HERE');
+```
+It should say "Success. 2 rows affected".
+
+### 4d. Use it
+Open `/admin`, sign in, and:
+- **Products → Add new product**: name, category, photos, then one row per
+  size/colour with its own price and stock. Click **Add to website** — it is
+  live immediately.
+- **Orders**: see every order, change status, add courier tracking, WhatsApp
+  the customer. Choosing "Cancelled" puts the items back in stock.
+- **Inbox**: custom/bulk requests, messages, review approvals, newsletter list.
+
+### Notes
+- Shipping rules (free above ₹999, else ₹60) live in two places that must match:
+  `SITE.shipping` in `src/lib/site.ts` and the top of `place_order()` in
+  `supabase/schema_v2.sql`.
+- `public/sitemap.xml` is a static list. Products you add later appear on the
+  site at once, but are only added to the sitemap if you regenerate it.
+- If Supabase can't be reached, the site shows the built-in copy of the old 13
+  products; ordering then falls back to "send your order on WhatsApp".

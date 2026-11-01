@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { collections } from "@/data/products";
+import { useCollections } from "@/lib/catalog";
 import { SITE, whatsappLink } from "@/lib/site";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ const schema = z.object({
 });
 
 const CustomizeOrder = () => {
+  const collections = useCollections();
   const [form, setForm] = useState({
     name: "",
     phone: "",

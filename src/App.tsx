@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -19,9 +20,8 @@ const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
 const FaqPage = lazy(() => import("./pages/FaqPage"));
 const PolicyPage = lazy(() => import("./pages/PolicyPage"));
+const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
 import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
 
 // NOTE: <CartProvider> and <HashRouter> live in main.tsx.
 const App = () => (
@@ -32,6 +32,7 @@ const App = () => (
 
       <Suspense fallback={<div className="min-h-screen" />}>
       <Routes>
+        <Route path="/admin/*" element={<AdminPage />} />
         <Route element={<Layout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />

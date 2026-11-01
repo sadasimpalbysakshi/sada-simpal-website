@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { Instagram, Facebook, MessageCircle, Mail, MapPin, Phone } from "lucide-react";
 import { SITE, whatsappLink } from "@/lib/site";
-import { collections } from "@/data/products";
+import { useCollections } from "@/lib/catalog";
 
 const linkClass = "text-sm text-[#EDE7E1]/70 transition-colors hover:text-[#EDE7E1]";
 
-const Footer = () => (
+const Footer = () => {
+  const collections = useCollections();
+  return (
   <footer className="bg-[#2E2A27] text-[#EDE7E1]">
     <div className="mx-auto max-w-7xl px-4 py-16 lg:px-8">
       <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4">
@@ -92,6 +94,7 @@ const Footer = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;

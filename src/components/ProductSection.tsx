@@ -1,7 +1,8 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { Product, products } from "@/data/products";
+import { Product } from "@/data/products";
+import { useProducts } from "@/lib/catalog";
 import ProductCard from "@/components/ProductCard";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 
 const ProductSection = ({ title, filter, viewAllHref = "/shop" }: Props) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
+  const { products } = useProducts();
 
   const items = products
     .filter(filter)

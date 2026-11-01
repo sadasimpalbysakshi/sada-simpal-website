@@ -10,8 +10,9 @@ import {
   PlacedOrder,
   checkoutSchema,
   orderWhatsappMessage,
-  saveOrder,
+  placeOrder,
 } from "@/lib/orders";
+import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,31 +77,38 @@ const CheckoutPage = () => {
     setErrors({});
     setBusy(true);
 
-    const order = {
-      orderNumber: makeOrderNumber(),
-      form: parsed.data,
-      items: state.items,
-      subtotal: totalPrice,
-      shipping,
-      total,
-    };
+    const result = await placeOrder(parsed.data, state.items);
 
-    const { error } = await saveOrder(order);
-    if (error) {
-      console.error("Order save failed", error);
+    if ("failure" in result) {
       setBusy(false);
-      // Don't lose the sale: let the customer send the order on WhatsApp instead.
-      setFailedOrder({ ...order, savedToDatabase: false });
+      const f = result.failure;
+      if (f.kind === "stock" || f.kind === "unavailable") {
+        // stock changed since the item was added — refresh the bag and tell the customer
+        toast.error(f.message);
+        queryClient.invalidateQueries({ queryKey: ["catalog"] });
+        return;
+      }
+      // Couldn't reach the server: don't lose the sale — offer WhatsApp instead.
+      setFailedOrder({
+        orderNumber: makeOrderNumber(),
+        form: parsed.data,
+        items: state.items,
+        subtotal: totalPrice,
+        shipping,
+        total,
+        savedToDatabase: false,
+      });
       toast.error("We couldn't save your order online. You can send it to us on WhatsApp instead.");
       return;
     }
 
-    const placed: PlacedOrder = { ...order, savedToDatabase: true };
+    const placed: PlacedOrder = result.order;
     try {
       sessionStorage.setItem(LAST_ORDER_KEY, JSON.stringify(placed));
     } catch {
       /* private mode – fine */
     }
+    queryClient.invalidateQueries({ queryKey: ["catalog"] }); // stock just changed
     clearCart();
     navigate(`/order-success/${placed.orderNumber}`, { state: placed, replace: true });
   };

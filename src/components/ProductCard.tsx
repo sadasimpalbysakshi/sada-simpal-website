@@ -2,23 +2,29 @@ import { Link } from "react-router-dom";
 import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/data/products";
+import { maxQtyFor } from "@/lib/catalog";
 import { useCart } from "@/contexts/CartContext";
 import { discountPercent, formatPrice } from "@/lib/format";
 
 const ProductCard = ({ product }: { product: Product }) => {
   const { addItem, setCartOpen } = useCart();
   const off = discountPercent(product.price, product.originalPrice);
-  const needsChoice = product.sizes.length > 1 || product.colors.length > 0;
+  const needsChoice = product.variants.length > 1;
+  const onlyOption = product.variants[0];
+  const hasRange = product.variants.some((v) => v.price !== product.price);
 
   const quickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!onlyOption?.available) return;
     addItem({
+      variantId: onlyOption.id,
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: onlyOption.price,
       image: product.images[0],
-      size: product.sizes[0] ?? "",
-      color: "",
+      size: onlyOption.size,
+      color: onlyOption.color,
+      maxQty: maxQtyFor(onlyOption),
     });
     toast.success(`${product.name} added to your bag`);
     setCartOpen(true);
@@ -54,6 +60,7 @@ const ProductCard = ({ product }: { product: Product }) => {
         </div>
         <h3 className="font-medium text-sm mb-1 line-clamp-1">{product.name}</h3>
         <p className="text-sm">
+          {hasRange && <span className="mr-1 text-muted-foreground">From</span>}
           <span className="font-medium">{formatPrice(product.price)}</span>
           {product.originalPrice && product.originalPrice > product.price && (
             <span className="ml-2 text-muted-foreground line-through">

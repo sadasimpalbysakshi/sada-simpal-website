@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useCart } from '@/contexts/CartContext';
+import { useCart, cartItemKey } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/format';
 
@@ -57,7 +57,7 @@ const CartSidebar = () => {
               ) : (
                 <div className="space-y-6">
                   {state.items.map((item) => {
-                    const itemKey = `${item.id}-${item.size}-${item.color}`;
+                    const itemKey = cartItemKey(item);
                     return (
                       <div key={itemKey} className="flex gap-4">
                         <div className="w-24 h-32 bg-muted rounded-sm overflow-hidden flex-shrink-0">

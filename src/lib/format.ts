@@ -36,3 +36,8 @@ export const withBase = (path: string) => {
   const clean = path.replace(/^\/?style-hub\//, "").replace(/^\//, "");
   return `${base}${clean}`;
 };
+
+/** Product photos are either full web addresses (uploaded by the admin) or
+ *  files that ship with the site (e.g. "products/bouquet/1.webp"). */
+export const imageUrl = (src: string) =>
+  /^https?:\/\//i.test(src) ? src : withBase(src);

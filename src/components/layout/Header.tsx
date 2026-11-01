@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { Menu, ShoppingBag, Search } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { collections } from "@/data/products";
+import { useCollections } from "@/lib/catalog";
 import { SITE } from "@/lib/site";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-const MENU = [
+const buildMenu = (collections: { slug: string; name: string }[]) => [
   { to: "/", label: "Home" },
   { to: "/shop", label: "Shop All" },
   ...collections.map((c) => ({ to: `/collections/${c.slug}`, label: c.name })),
@@ -30,6 +30,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 const Header = () => {
+  const MENU = buildMenu(useCollections());
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { totalItems, toggleCart } = useCart();

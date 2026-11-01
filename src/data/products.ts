@@ -1,7 +1,20 @@
 import { withBase } from "@/lib/format";
 
-export interface Product {
+/** One buyable option of a product: a size + colour with its own price and stock. */
+export interface Variant {
   id: string;
+  size: string;
+  color: string;
+  colorHex: string;
+  price: number;
+  stock: number;
+  madeToOrder: boolean; // always available, stock count ignored
+  available: boolean;
+}
+
+export interface Product {
+  id: string; // the product's web address name, e.g. "rose-crochet-bouquet"
+  variants: Variant[];
   name: string;
   price: number;
   originalPrice?: number;
@@ -45,7 +58,7 @@ export const collections: Collection[] = rawCollections.map((c) => ({
   image: withBase(c.image),
 }));
 
-const rawProducts: Product[] = [
+const rawProducts: Omit<Product, "variants">[] = [
 
 
     {
@@ -292,10 +305,42 @@ const rawProducts: Product[] = [
 
 ];
 
-export const products: Product[] = rawProducts.map((p) => ({
-  ...p,
-  images: p.images.map(withBase),
-}));
+/** Work out the "headline" fields (from-price, sizes, colours, in stock?) from the variants. */
+export const summariseVariants = (variants: Variant[]) => {
+  const available = variants.filter((v) => v.available);
+  const priced = available.length ? available : variants;
+  const sizes = Array.from(new Set(variants.map((v) => v.size)));
+  const colorMap = new Map<string, string>();
+  variants.forEach((v) => v.color && !colorMap.has(v.color) && colorMap.set(v.color, v.colorHex));
+  return {
+    price: priced.length ? Math.min(...priced.map((v) => v.price)) : 0,
+    sizes,
+    colors: Array.from(colorMap, ([name, hex]) => ({ name, hex })),
+    inStock: available.length > 0,
+  };
+};
+
+/** Built-in copy of the catalogue. Only used if the database can't be reached. */
+export const products: Product[] = rawProducts.map((p) => {
+  const sizes = p.sizes.length ? p.sizes : ["One Size"];
+  const colors = p.colors.length ? p.colors : [{ name: "", hex: "" }];
+  const variants: Variant[] = [];
+  sizes.forEach((size) =>
+    colors.forEach((c) =>
+      variants.push({
+        id: `static-${p.id}-${variants.length}`,
+        size,
+        color: c.name,
+        colorHex: c.hex,
+        price: p.price,
+        stock: 0,
+        madeToOrder: true,
+        available: p.inStock,
+      })
+    )
+  );
+  return { ...p, variants, images: p.images.map(withBase) };
+});
 
 export const getProduct = (id?: string) => products.find((p) => p.id === id);
 

@@ -5,10 +5,20 @@ import Footer from "./Footer";
 import CartSidebar from "./CartSidebar";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { useScrollToHash } from "@/hooks/useScrollToHash";
+import { useCatalog } from "@/lib/catalog";
+import { useCart } from "@/contexts/CartContext";
 
 const Layout = () => {
   useScrollToHash();
   const { pathname } = useLocation();
+  const { data: catalog } = useCatalog();
+  const { syncWithCatalog } = useCart();
+
+  // keep prices / availability of items already in the bag up to date
+  useEffect(() => {
+    if (catalog) syncWithCatalog(catalog.products);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog]);
 
   // start every new page at the top
   useEffect(() => {

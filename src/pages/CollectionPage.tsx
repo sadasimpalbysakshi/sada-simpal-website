@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from "react-router-dom";
-import { getCollection, productsInCollection } from "@/data/products";
+import { useCollections, useProducts } from "@/lib/catalog";
 import ProductCard from "@/components/ProductCard";
 import Seo from "@/components/Seo";
 import NotFound from "./NotFound";
@@ -18,12 +18,14 @@ const LEGACY: Record<string, string> = {
 
 const CollectionPage = () => {
   const { slug } = useParams();
+  const collections = useCollections();
+  const { products, loading } = useProducts();
   const legacy = LEGACY[(slug ?? "").toLowerCase()];
   if (legacy) return <Navigate to={`/collections/${legacy}`} replace />;
-  const collection = getCollection(slug);
+  const collection = collections.find((c) => c.slug.toLowerCase() === (slug ?? "").toLowerCase());
   if (!collection) return <NotFound />;
 
-  const items = productsInCollection(collection.slug);
+  const items = products.filter((p) => p.category === collection.slug);
 
   return (
     <div>
@@ -53,7 +55,16 @@ const CollectionPage = () => {
           <span className="text-foreground">{collection.name}</span>
         </nav>
 
-        {items.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4" aria-busy="true">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="mb-3 aspect-[3/4] rounded-sm bg-muted" />
+                <div className="mb-2 h-3 w-3/4 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
           <div className="mx-auto max-w-md py-12 text-center">
             <p className="font-display text-3xl mb-3">New pieces coming soon</p>
             <p className="mb-6 text-sm text-muted-foreground">
