@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 type Review = {
   id: string;
@@ -55,19 +56,24 @@ export const ReviewsSection = () => {
 
     setLoading(true);
 
-    await supabase.from("reviews").insert({
+    const { error } = await supabase.from("reviews").insert({
       name,
       rating,
       text,
-      approved: false, // 👈 admin approval required
+      approved: false, // admin approval required
     });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error("Sorry, we couldn't submit your review. Please try again.");
+      return;
+    }
 
     setName("");
     setText("");
     setRating(5);
-    setLoading(false);
-
-    alert("Thank you! Your review will appear after approval 💛");
+    toast.success("Thank you! Your review will appear after approval 💛");
   };
 
   return (

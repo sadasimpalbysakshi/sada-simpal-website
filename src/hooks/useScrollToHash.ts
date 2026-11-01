@@ -1,21 +1,16 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
+/** Scrolls to #section links, e.g. /#collections */
 export const useScrollToHash = () => {
-  const location = useLocation();
+  const { hash } = useLocation();
 
   useEffect(() => {
-    // Handle HashRouter anchor scroll: #/#[id]
-    const hash = location.hash?.split("#")[2];
-
-    if (!hash) return;
-
-    const el = document.getElementById(hash);
-    if (!el) return;
-
-    // wait for layout + images
-    setTimeout(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const id = hash.replace(/^#/, "");
+    if (!id) return;
+    const timer = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 150);
-  }, [location]);
+    return () => clearTimeout(timer);
+  }, [hash]);
 };

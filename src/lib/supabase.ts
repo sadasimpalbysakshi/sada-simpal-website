@@ -1,9 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = "https://pfswquqnptcnmtzehzon.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmc3dxdXFucHRjbm10emVoem9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDQwNjYsImV4cCI6MjA4NTAyMDA2Nn0.YMBlebSlYAUPo1YcZTD3-gsoc100-U9J2m0ehCH78AE";
+// Sada Simpal's own Supabase project (company account).
+//
+// The URL and the "publishable" key are DESIGNED to be public — they ship to
+// every visitor's browser. What protects your data is Row Level Security
+// (see supabase/schema.sql), not hiding these two values.
+//
+// NEVER put the "secret" / service_role key in this project.
+//
+// You can override both with a .env.local file (see .env.example).
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ?? "https://nxvhlqnjfhasknfmxegu.supabase.co";
+const supabaseKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ??
+  "sb_publishable_KYd0VNMPqQc_YpclSKNRig_JvGHXKbW";
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+export const supabase = createClient(supabaseUrl, supabaseKey);

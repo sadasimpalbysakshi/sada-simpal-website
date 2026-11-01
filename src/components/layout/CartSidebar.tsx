@@ -3,17 +3,11 @@ import { X, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
+import { formatPrice } from '@/lib/format';
 
 const CartSidebar = () => {
   const { state, removeItem, updateQuantity, setCartOpen, totalPrice } = useCart();
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
 
   return (
     <AnimatePresence>
@@ -25,7 +19,7 @@ const CartSidebar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setCartOpen(false)}
-            className="fixed inset-0 bg-foreground/50 z-50"
+            className="fixed inset-0 bg-foreground/50 z-[60]"
           />
 
           {/* Sidebar */}
@@ -34,7 +28,7 @@ const CartSidebar = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.3 }}
-            className="fixed top-0 right-0 h-full w-full max-w-md bg-background z-50 shadow-xl flex flex-col"
+            className="fixed top-0 right-0 h-full w-full max-w-md bg-background z-[60] shadow-xl flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
@@ -54,7 +48,7 @@ const CartSidebar = () => {
                   <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
                   <p className="text-lg font-display mb-2">Your bag is empty</p>
                   <p className="text-muted-foreground text-sm mb-6">
-                    Discover our collection of timeless linen pieces
+                    Discover our handmade crochet collection
                   </p>
                   <Button onClick={() => setCartOpen(false)} asChild>
                     <Link to="/shop">Continue Shopping</Link>
@@ -75,9 +69,11 @@ const CartSidebar = () => {
                         </div>
                         <div className="flex-1">
                           <h3 className="font-medium text-sm mb-1">{item.name}</h3>
-                          <p className="text-muted-foreground text-xs mb-2">
-                            {item.color} / {item.size}
-                          </p>
+                          {[item.color, item.size].filter((v) => v && v !== "One Size").length > 0 && (
+                            <p className="text-muted-foreground text-xs mb-2">
+                              {[item.color, item.size].filter((v) => v && v !== "One Size").join(" / ")}
+                            </p>
+                          )}
                           <p className="font-medium text-sm mb-3">
                             {formatPrice(item.price)}
                           </p>
@@ -126,7 +122,7 @@ const CartSidebar = () => {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Shipping and taxes calculated at checkout
+                  Shipping is calculated at checkout
                 </p>
                 <Button className="w-full" size="lg" asChild>
                   <Link to="/checkout" onClick={() => setCartOpen(false)}>

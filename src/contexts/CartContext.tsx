@@ -26,7 +26,7 @@ type CartAction =
 
 interface CartContextType {
   state: CartState;
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
+  addItem: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -35,6 +35,9 @@ interface CartContextType {
   totalItems: number;
   totalPrice: number;
 }
+
+export const cartItemKey = (i: Pick<CartItem, 'id' | 'size' | 'color'>) =>
+  `${i.id}-${i.size}-${i.color}`;
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -55,7 +58,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
             item.id === existingItem.id &&
             item.size === existingItem.size &&
             item.color === existingItem.color
-              ? { ...item, quantity: item.quantity + 1 }
+              ? { ...item, quantity: item.quantity + action.payload.quantity }
               : item
           ),
         };
@@ -100,7 +103,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('sadasahi-cart');
+    const savedCart = localStorage.getItem('sadasimpal-cart');
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
@@ -113,11 +116,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Save cart to localStorage on change
   useEffect(() => {
-    localStorage.setItem('sadasahi-cart', JSON.stringify(state.items));
+    localStorage.setItem('sadasimpal-cart', JSON.stringify(state.items));
   }, [state.items]);
 
-  const addItem = (item: Omit<CartItem, 'quantity'>) => {
-    dispatch({ type: 'ADD_ITEM', payload: { ...item, quantity: 1 } });
+  const addItem = (item: Omit<CartItem, 'quantity'>, quantity = 1) => {
+    dispatch({ type: 'ADD_ITEM', payload: { ...item, quantity } });
   };
 
   const removeItem = (id: string) => {

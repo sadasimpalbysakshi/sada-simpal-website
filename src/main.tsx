@@ -1,17 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { HashRouter } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import { CartProvider } from "@/contexts/CartContext";
 
-import { CartProvider } from "@/contexts/CartContext"; // 👈 ADD THIS
-
+// BrowserRouter = clean URLs like /product/b1 (needs the host to serve index.html
+// for every path — see public/_redirects).
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <CartProvider>
-      <HashRouter>
+      <BrowserRouter>
         <App />
-      </HashRouter>
+      </BrowserRouter>
     </CartProvider>
   </React.StrictMode>
 );
