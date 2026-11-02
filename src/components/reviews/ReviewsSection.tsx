@@ -76,64 +76,68 @@ export const ReviewsSection = () => {
     toast.success("Thank you! Your review will appear after approval 💛");
   };
 
-  return (
-    <section className="py-24 bg-[#FAF7F2]">
-      <div className="max-w-7xl mx-auto px-6">
+  const [showForm, setShowForm] = useState(false);
+  const shown = reviews.slice(0, 8);
 
+  return (
+    <section className="bg-[#FAF7F2] px-4 py-20 lg:px-8">
+      <div className="mx-auto max-w-7xl">
         {/* ================= HEADER ================= */}
-        <div className="text-center mb-16">
-          <h2 className="font-display text-4xl mb-3">
-            Customer Stories
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Loved by customers across India
+        <div className="mb-12 text-center">
+          <h2 className="mb-3 font-display text-3xl md:text-4xl">Loved by our customers</h2>
+          <p className="text-sm text-muted-foreground">
+            Real stories from people who love their purchase.
           </p>
         </div>
 
-        {/* ================= MOVING REVIEWS ================= */}
-        {reviews.length > 0 ? (
-          <div className="relative overflow-hidden mb-20">
-            <motion.div
-              className="flex gap-8"
-              animate={{ x: ["0%", "-50%"] }}
-              transition={{
-                duration: 35,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            >
-              {[...reviews, ...reviews].slice(0, 12).map((r, index) => (
+        {/* ================= REVIEW CARDS ================= */}
+        {shown.length > 0 && (
+          <div className="mb-12 flex flex-wrap justify-center gap-5">
+            {shown.map((r) => (
+              <motion.figure
+                key={r.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="flex w-full flex-col items-center rounded-lg bg-white p-6 text-center shadow-sm sm:w-[calc(50%-0.625rem)] lg:w-[calc(25%-0.9375rem)]"
+              >
                 <div
-                  key={index}
-                  className="min-w-[300px] md:min-w-[360px] bg-white p-6 rounded-xl shadow-md"
+                  aria-hidden="true"
+                  className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary font-display text-2xl"
                 >
-                  {/* Stars */}
-                  <div className="flex gap-1 mb-3">
-                    {Array.from({ length: r.rating }).map((_, i) => (
-                      <span key={i} className="text-yellow-500">★</span>
-                    ))}
-                  </div>
-
-                  {/* Text */}
-                  <p className="text-sm text-muted-foreground mb-4 italic">
-                    “{r.text}”
-                  </p>
-
-                  {/* Name */}
-                  <p className="text-sm font-medium">
-                    — {r.name}
-                  </p>
+                  {r.name.trim().charAt(0).toUpperCase()}
                 </div>
-              ))}
-            </motion.div>
+                <div className="mb-3 text-yellow-500" aria-label={`${r.rating} out of 5 stars`}>
+                  {"★".repeat(r.rating)}
+                </div>
+                <blockquote className="mb-4 flex-1 text-sm leading-relaxed text-muted-foreground">
+                  “{r.text}”
+                </blockquote>
+                <figcaption className="text-sm font-medium">{r.name}</figcaption>
+              </motion.figure>
+            ))}
           </div>
-        ) : (
-          <p className="text-center text-muted-foreground mb-16">
-            No reviews yet. Be the first to share your experience!
-          </p>
         )}
 
+        <div className="mb-10 text-center">
+          {shown.length === 0 && (
+            <p className="mb-4 text-sm text-muted-foreground">
+              No reviews yet — be the first to share your experience!
+            </p>
+          )}
+          {!showForm && (
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="rounded-sm border border-foreground px-6 py-2 text-sm hover:bg-foreground hover:text-background"
+            >
+              Write a review
+            </button>
+          )}
+        </div>
+
         {/* ================= SUBMIT REVIEW ================= */}
+        {showForm && (
         <motion.form
           onSubmit={submitReview}
           initial={{ opacity: 0, y: 30 }}
@@ -181,6 +185,7 @@ export const ReviewsSection = () => {
             {loading ? "Submitting..." : "Submit Review"}
           </button>
         </motion.form>
+        )}
       </div>
     </section>
   );

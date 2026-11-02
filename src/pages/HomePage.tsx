@@ -4,7 +4,7 @@ import { Briefcase, Hand, Truck, MessageCircle, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCollections } from "@/lib/catalog";
 import { SITE } from "@/lib/site";
-import { formatPrice, withBase } from "@/lib/format";
+import { formatPrice, withBase, imageUrl } from "@/lib/format";
 import ProductSection from "@/components/ProductSection";
 import { ReviewsSection } from "@/components/reviews/ReviewsSection";
 import Newsletter from "@/components/Newsletter";
@@ -23,6 +23,7 @@ const TRUST = [
 
 const HomePage = () => {
   const collections = useCollections();
+  const instaPhotos = collections.filter((c) => c.image).slice(0, 6);
   return (
   <div>
     <Seo />
@@ -193,15 +194,36 @@ const HomePage = () => {
     </section>
 
     {/* ================= INSTAGRAM ================= */}
-    <section className="bg-secondary/40 px-4 py-14 text-center">
-      <Instagram className="mx-auto mb-3 h-7 w-7" />
-      <h2 className="mb-2 font-display text-3xl">Follow our journey</h2>
-      <p className="mb-5 text-sm text-muted-foreground">
-        Behind-the-scenes, new creations and happy customers on {SITE.instagramHandle}
+    <section className="px-4 py-20 text-center lg:px-8">
+      <h2 className="mb-3 font-display text-3xl md:text-4xl">Follow us on Instagram</h2>
+      <p className="mb-8 text-sm text-muted-foreground">
+        Join our community for a closer look at our creations
       </p>
+      <div className="mx-auto mb-8 grid max-w-5xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {instaPhotos.map((p) => (
+          <a
+            key={p.id}
+            href={SITE.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${p.name} — see more on Instagram`}
+            className="group relative block aspect-square overflow-hidden"
+          >
+            <img
+              src={imageUrl(p.image)}
+              alt={p.name}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <span className="absolute inset-0 flex items-center justify-center bg-foreground/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <Instagram className="h-6 w-6 text-background" />
+            </span>
+          </a>
+        ))}
+      </div>
       <Button variant="outline" asChild>
         <a href={SITE.instagram} target="_blank" rel="noopener noreferrer">
-          Follow on Instagram
+          <Instagram className="mr-2 h-4 w-4" /> {SITE.instagramHandle}
         </a>
       </Button>
     </section>
